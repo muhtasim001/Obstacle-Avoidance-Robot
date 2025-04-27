@@ -9,11 +9,11 @@
 #include "costmap_core.hpp"
 
 //useful constants 
-const int GRID_X_SIZE = 20,GRID_Y_SIZE = 20;
+const int GRID_X_SIZE = 10,GRID_Y_SIZE = 10;
 const float GRID_RESOLUTION = 0.1;
 const int INFLATION_COST = 100;
 const float INFLATION_RADIUS = 0.8;
-const int GRID_SIZE = 20 / GRID_RESOLUTION;
+const int GRID_SIZE = 10 / GRID_RESOLUTION;
  
 class CostmapNode : public rclcpp::Node {
   public:
