@@ -12,11 +12,19 @@
 #include "nav_msgs/msg/odometry.hpp"
 
 //global variables
-struct GM_Var {
+namespace GM_Var {
   const int x_size = 30;
   const int y_size = 30;
   const float resolution = 0.1f;
   const int gg_size = 30/resolution;
+  const int gg_ofset = gg_size/2;
+}
+
+struct transformation_var {
+  double x,y;
+  double qx,qy,qz,qw;
+  double sinTheta,cosTheta;
+  int ofset;
 };
 
 class MapMemoryNode : public rclcpp::Node {
@@ -37,6 +45,10 @@ class MapMemoryNode : public rclcpp::Node {
     double last_x, last_y;
     const double distance_threshold = 1.5;
     bool costmap_updated_ = false;
+    transformation_var tv;
+
+    //current global map
+    std::vector<std::vector<int8_t>> global_map_2d;
 
     //call back funtions
     void costmapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
@@ -45,6 +57,7 @@ class MapMemoryNode : public rclcpp::Node {
     //helper and sub functions
     void updateMap();
     void integrateCostmap();
+    void convertRobotToWorldIndex(int robot_x,int robot_y,int &world_x,int &world_y);
 
     //flags
     nav_msgs::msg::OccupancyGrid latest_costmap_;

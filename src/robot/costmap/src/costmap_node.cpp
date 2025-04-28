@@ -101,8 +101,8 @@ void CostmapNode::convertToGrid(double range,double angle,int &gridX,int &gridY)
   double yCord = range * sin(angle);
 
   //account for the shift as the robot is in the certer of the 2d array
-  gridX = (int)(xCord / GRID_RESOLUTION + GRID_X_SIZE/2);
-  gridY = (int)(yCord / GRID_RESOLUTION + GRID_Y_SIZE/2);
+  gridX = (int)std::round((xCord / GRID_RESOLUTION + GRID_X_SIZE/2));
+  gridY = (int)std::round((yCord / GRID_RESOLUTION + GRID_Y_SIZE/2));
 
 }
 
