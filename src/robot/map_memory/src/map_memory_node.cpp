@@ -4,6 +4,23 @@
 #include "map_memory_node.hpp"
 
 MapMemoryNode::MapMemoryNode() : Node("map_memory"), map_memory_(robot::MapMemoryCore(this->get_logger())) {
+
+  //initalize the global costmap
+  global_map_ = std::make_shared<nav_msgs::msg::OccupancyGrid>();
+
+  global_map_->info.height = GM_Var::y_size;
+  global_map_->info.width = GM_Var::x_size;
+  global_map_->info.resolution = GM_Var::resolution;
+  global_map_->info.origin.position.x = GM_Var::gg_ofset;
+  global_map_->info.origin.position.y = GM_Var::gg_ofset;
+  global_map_->info.origin.orientation.w = 1.0;
+
+  global_map_->data.assign(GM_Var::gg_size*GM_Var::gg_size,-1);
+
+  costmap_updated_ = false;
+  should_update_map_ = false;
+
+
   // Initialize subscribers
   costmap_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
     "/costmap", 10, std::bind(&MapMemoryNode::costmapCallback, this, std::placeholders::_1));
@@ -48,7 +65,6 @@ void MapMemoryNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
   // Compute distance traveled
   double distance = std::sqrt(std::pow(x - last_x, 2) + std::pow(y - last_y, 2));
   if (distance >= distance_threshold) {
-    global_map_.header = msg->header;
     last_x = x;
     last_y = y;
     should_update_map_ = true;
@@ -57,8 +73,13 @@ void MapMemoryNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
 
 void MapMemoryNode::updateMap() {
   if (should_update_map_ && costmap_updated_) {
+
+    global_map_->header.stamp    = this->now();
+    global_map_->header.frame_id = "sim_world";
+
     integrateCostmap();
-    map_pub_->publish(global_map_);
+
+    map_pub_->publish(*global_map_);
     should_update_map_ = false;
   }
 }
@@ -115,7 +136,7 @@ void MapMemoryNode::integrateCostmap() {
 
       //checking if the new one if unknown,than skiping
       if (global_map_2d[i][j] != -1) {
-        global_map_.data[index] = global_map_2d[i][j];
+        global_map_->data[index] = global_map_2d[i][j];
       }
 
       index++;
