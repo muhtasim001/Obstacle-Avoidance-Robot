@@ -11,6 +11,50 @@
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "nav_msgs/msg/path.hpp"
 
+// A* parts 
+struct CellIndex {
+  int x;
+  int y;
+
+  CellIndex(int xx, int yy) : x(xx), y(yy) {}
+  CellIndex() : x(0), y(0) {}
+
+  bool operator==(const CellIndex &other) const
+  {
+    return (x == other.x && y == other.y);
+  }
+
+  bool operator!=(const CellIndex &other) const
+  {
+    return (x != other.x || y != other.y);
+  }
+};
+
+// Hash function for CellIndex so it can be used in std::unordered_map
+struct CellIndexHash {
+  std::size_t operator()(const CellIndex &idx) const
+  {
+    // A simple hash combining x and y
+    return std::hash<int>()(idx.x) ^ (std::hash<int>()(idx.y) << 1);
+  }
+};
+struct AStarNode
+{
+  CellIndex index;
+  double f_score;  // f = g + h
+
+  AStarNode(CellIndex idx, double f) : index(idx), f_score(f) {}
+};
+
+struct CompareF
+{
+  bool operator()(const AStarNode &a, const AStarNode &b)
+  {
+    // We want the node with the smallest f_score on top
+    return a.f_score > b.f_score;
+  }
+};
+
 class PlannerNode : public rclcpp::Node {
   public:
     PlannerNode();
@@ -33,6 +77,7 @@ class PlannerNode : public rclcpp::Node {
     geometry_msgs::msg::PointStamped goal_point;
     nav_msgs::msg::OccupancyGrid global_map;
     geometry_msgs::msg::Pose robot_pose;
+    int8_t grid_2d [300][300] = {}; // I just know the size of this
 
     //state
     enum class State { WAITING_FOR_GOAL, WAITING_FOR_ROBOT_TO_REACH_GOAL };
@@ -46,51 +91,11 @@ class PlannerNode : public rclcpp::Node {
     void timerCallBack();
     bool goalReached();
     void planPath();
-
-    //A* parts
-
-    struct CellIndex {
-      int x;
-      int y;
- 
-      CellIndex(int xx, int yy) : x(xx), y(yy) {}
-      CellIndex() : x(0), y(0) {}
- 
-      bool operator==(const CellIndex &other) const
-      {
-        return (x == other.x && y == other.y);
-      }
- 
-      bool operator!=(const CellIndex &other) const
-      {
-        return (x != other.x || y != other.y);
-      }
-    };
-
-    // Hash function for CellIndex so it can be used in std::unordered_map
-    struct CellIndexHash {
-      std::size_t operator()(const CellIndex &idx) const
-      {
-        // A simple hash combining x and y
-        return std::hash<int>()(idx.x) ^ (std::hash<int>()(idx.y) << 1);
-      }
-    };
-    struct AStarNode
-    {
-      CellIndex index;
-      double f_score;  // f = g + h
- 
-      AStarNode(CellIndex idx, double f) : index(idx), f_score(f) {}
-    };
-
-    struct CompareF
-    {
-      bool operator()(const AStarNode &a, const AStarNode &b)
-      {
-        // We want the node with the smallest f_score on top
-        return a.f_score > b.f_score;
-      }
-    };
+    void aStartPathFinder(CellIndex start,CellIndex target,nav_msgs::msg::Path &path);
+    int hCostCalc (CellIndex current,CellIndex start);
+    int gCostCalc (CellIndex current,CellIndex goal);
+    std::vector<CellIndex> findNeighbors(AStarNode current_Node);
+    std::vector<geometry_msgs::msg::PoseStamped> reConstructPath(std::unordered_map<CellIndex, CellIndex, CellIndexHash> backTrackList,AStarNode start,AStarNode end);
 
 };
 
@@ -103,40 +108,47 @@ outside the funtion in class private :
 
   pathfind(cellIndex starting,CellIndex ending) {
 
-    parent_child.clear();
-    cell_gCost.clear();
 
-    AStarNode startNode (staring cellIndex,hCostCalc(starting,ending) + gCostCals(starting,ending));
-    AStartNode endNode (ending cellIndex,hCostCalc(ending,ending) + gCostCals(ending,ending));
+    AStarNode startNode (staring,hCostCalc(starting,endinge) + 0);
+    AStartNode endNode (ending, 0 + gCostCals(ending,start));
 
     priority_que<AStarNode> open;
     unordered_map <cellIndex,bool> closed;
 
     open.push(startNode);
-    cell_gCost.insert(starting,gCostCalc(starting,ending));
+    cell_gCost.insert(starting, 0);
 
     while (!open.empty()) {
-      AstartNode current = startNode;
-      open.pop();
-      closed.insert(current.index,true)
+      AstartNode current = open.pop();
+      closed.insert(current.index,true);
 
-      if (current.index == endNode.index)
+      if (current.index == endNode.index) {
         return;
+      }
+        
       
       for (cellIndex node:findNeighbors(current)) {
 
         if (2dGrid[node.y][node.x] > 0 || closed.containes(node)) continue;
 
-        int movemnetCostToNode = cell_gCost.at(current.index) + gCostCalc(current.index,node);
+        int gCostFromCurrent = cell_gCost[current.index] + gcostCalc(node,current.index);
         
-        if (movemnetCostToNode < gCostCalc(node,starting) || cel_gCost.contains(node)) {
+        if (!cel_gCost.contains(node) || gCostFromCurrent < cell_gCost.at(node)) {
 
-          int node_f_Cost = movemnetCostToNode + hCostCalc(node,ending);
-          child_parent.insert(node,current.index);
-
-          if (!cel_gCost.contains(node)) {
-            cell_gCost.insert(node,movemnetCostToNode);
-            open.push(AStarNode(node,node_f_cost));
+          int node_f_Cost = gCostFromCurrent + hCostCalc(node,ending);
+          open.push(AStarNode(node,node_f_cost));
+          
+          if (parent_child.contains(node)) {
+            parent_child[node] = current.index;            
+          } else {
+           parent_child.emplace(node,current.index);
+          }
+          
+          if (cel_gCost.contains(node)) {
+            cel_gCost[node] = gCostFromCurrent;
+          }
+          else {
+            cell_gCost.insert(node,gCostFromCurrent);
           }
         }
 
@@ -144,10 +156,12 @@ outside the funtion in class private :
     }
   }
 
+  // h-cost always curret to end
   int hCostCalc (cellIndex current,cellIndex goal) {
     return gridSize*(abs(current.x - goal.x) + abs (current.y - goal.y));
   }
 
+  // g-cost always start to current
   int gCostCalc (cellIndex current,cellIndex start) {
     return gridSize*(abs(start.x - current.x) + abs(start.y - current.y));
   }
@@ -155,7 +169,6 @@ outside the funtion in class private :
   std::vector<cellIndex> findNeighbors(AStartNode current) {
     std::vector nList;
     //make a loop that makes and adds in a 3x3 radius, skips current
-    //also add the node to the parent_child with current as parent and child at the index
     return nList;
   }
 */

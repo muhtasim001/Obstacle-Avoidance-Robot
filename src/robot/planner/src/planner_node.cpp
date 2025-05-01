@@ -1,5 +1,6 @@
 #include <chrono>
 #include <memory>
+#include <queue>
 
 #include "planner_node.hpp"
 
@@ -63,6 +64,119 @@ bool PlannerNode::goalReached() {
   return std::sqrt(dx * dx + dy * dy) < 0.5;
 }
 
+void PlannerNode::aStartPathFinder(CellIndex start,CellIndex target,nav_msgs::msg::Path &path) {
+
+  std::unordered_map<CellIndex, int, CellIndexHash> cell_gCost;
+  std::unordered_map<CellIndex, CellIndex, CellIndexHash> child_parent;
+  std::unordered_map<CellIndex, bool, CellIndexHash> closed;
+  std::priority_queue<AStarNode, std::vector<AStarNode>,CompareF> open;
+
+  AStarNode startNode (start,hCostCalc(start,target) + 0);
+  AStarNode endNode (target, 0 + gCostCalc(target,start));
+
+  open.push(startNode);
+  cell_gCost.emplace(startNode.index, 0);
+
+  while (!open.empty()) {
+
+    AStarNode current = open.top();
+    open.pop();
+    closed.emplace(current.index,true);
+
+    if (current.index == endNode.index) {
+      path.poses = reConstructPath (child_parent,startNode,endNode);
+      return;
+    }
+
+    for (CellIndex myNode:PlannerNode::findNeighbors(current)) {
+
+      if (grid_2d[myNode.y][myNode.x] > 0 || closed.find(myNode) != closed.end()) {
+        continue;
+      }
+
+      int gCostFromCurrent = cell_gCost[current.index] + gCostCalc(myNode,current.index);
+
+      if (cell_gCost.find(myNode) == cell_gCost.end() || gCostFromCurrent < cell_gCost.at(myNode)) {
+
+        int node_fCost = gCostFromCurrent + hCostCalc(myNode,endNode.index);
+        open.push(AStarNode(myNode,node_fCost));
+
+        if (child_parent.find(myNode) != child_parent.end()) {
+          child_parent[myNode] = current.index;
+        } else {
+          child_parent.emplace(myNode,current.index);
+        }
+
+        if (cell_gCost.find(myNode) != cell_gCost.end()) {
+          cell_gCost[myNode] = gCostFromCurrent;
+        } else {
+          cell_gCost.emplace(myNode,gCostFromCurrent);
+        }
+
+      }
+
+    }
+
+  }
+
+}
+
+int PlannerNode::hCostCalc (CellIndex current,CellIndex start) {
+  return (int)((global_map.info.width/global_map.info.resolution)*(abs(current.x - start.x) + abs (current.y - start.y)));
+}
+
+int PlannerNode::gCostCalc (CellIndex current,CellIndex goal) {
+  return (int)((global_map.info.width/global_map.info.resolution)*(abs(current.x - goal.x) + abs (current.y - goal.y)));
+}
+
+std::vector<CellIndex> PlannerNode::findNeighbors(AStarNode current) {
+
+  std::vector<CellIndex> neighbors = {};
+  
+  
+  for (int x = -1; x <= 1; x++) {
+    for (int y = -1; y <= 1; y++) {
+      if (x != 0 && y != 0) {
+        int cellX = current.index.x + x;
+        int cellY = current.index.y + y;
+
+        if (cellX >= 0 && cellX < global_map.info.width && cellY >= 0 && cellY < global_map.info.height) {
+          CellIndex myCell(cellX,cellY);
+          neighbors.push_back(myCell);
+        }
+      }
+    }
+  }
+
+  return neighbors;
+
+}
+
+std::vector<geometry_msgs::msg::PoseStamped> PlannerNode::reConstructPath(
+  std::unordered_map<CellIndex, CellIndex, CellIndexHash> backTrackList,AStarNode start,AStarNode end) {
+
+  std::vector<geometry_msgs::msg::PoseStamped> pathPoints = {};
+
+  CellIndex curent = end.index;
+
+  geometry_msgs::msg::PoseStamped currentPoint;
+
+  while (curent != start.index) {
+    currentPoint.pose.position.x = curent.x/global_map.info.resolution + global_map.info.width/2;
+    currentPoint.pose.position.y = curent.y/global_map.info.resolution + global_map.info.height/2;
+    currentPoint.pose.position.z = 0;
+    
+    pathPoints.push_back(currentPoint);
+
+    curent = backTrackList.at(curent);
+  }
+
+  std::reverse(pathPoints.begin(),pathPoints.end());
+
+  return pathPoints;
+
+}
+
 void PlannerNode::planPath() {
 
   if (!goal_received || global_map.data.empty()) {
@@ -76,8 +190,19 @@ void PlannerNode::planPath() {
   path.header.frame_id = "map";
 
   // Compute path using A* on current_map_
+
+  //find the start point
+  int robot_start_x = (robot_pose.position.x - ((global_map.info.width*global_map.info.resolution)/2)) * global_map.info.resolution;
+  int robot_start_y = (robot_pose.position.y - ((global_map.info.height*global_map.info.resolution)/2)) * global_map.info.resolution;
+  CellIndex startPoint (robot_start_x,robot_start_y);
   
-  // Fill path.poses with the resulting waypoints.
+  //find the end point
+  int robot_end_x = ( goal_point.point.x - ((global_map.info.width*global_map.info.resolution)/2)) * global_map.info.resolution;
+  int robot_end_y = ( goal_point.point.y - ((global_map.info.height*global_map.info.resolution)/2)) * global_map.info.resolution;
+  CellIndex endPoint (robot_end_x,robot_end_y);
+  
+  //find the path using the A* 
+  PlannerNode::aStartPathFinder(startPoint,endPoint,path);
 
   path_pub->publish(path);
 }
