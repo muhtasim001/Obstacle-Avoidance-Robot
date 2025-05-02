@@ -7,6 +7,7 @@ MapMemoryNode::MapMemoryNode() : Node("map_memory"), map_memory_(robot::MapMemor
 
   //initalize the global costmap
   global_map_ = std::make_shared<nav_msgs::msg::OccupancyGrid>();
+  global_map_->data.assign(GM_Var::gg_size*GM_Var::gg_size,-1);
 
   global_map_->info.height = GM_Var::y_size;
   global_map_->info.width = GM_Var::x_size;
@@ -15,10 +16,10 @@ MapMemoryNode::MapMemoryNode() : Node("map_memory"), map_memory_(robot::MapMemor
   global_map_->info.origin.position.y = GM_Var::gg_ofset;
   global_map_->info.origin.orientation.w = 1.0;
 
-  global_map_->data.assign(GM_Var::gg_size*GM_Var::gg_size,-1);
-
   costmap_updated_ = false;
   should_update_map_ = false;
+
+  RCLCPP_INFO(this->get_logger(),"initalized global map");
 
 
   // Initialize subscribers
@@ -34,6 +35,8 @@ MapMemoryNode::MapMemoryNode() : Node("map_memory"), map_memory_(robot::MapMemor
   // Initialize timer
   timer_ = this->create_wall_timer(
       std::chrono::seconds(1), std::bind(&MapMemoryNode::updateMap, this));
+
+  RCLCPP_INFO(this->get_logger(),"initalized all subs,pubs and timers");
 
   
 }
@@ -87,23 +90,10 @@ void MapMemoryNode::updateMap() {
 
 void MapMemoryNode::integrateCostmap() {
 
-  //step 1 : unpack local cost map 1d array into 2d array
-
   //find the size of local cost map
-  int x_max = latest_costmap_.info.width/latest_costmap_.info.resolution;
-  int y_max = latest_costmap_.info.height/latest_costmap_.info.resolution;
-  std::vector<std::vector<int8_t>> robot_cost_map (y_max, std::vector<int8_t>(x_max,0));
-  int index = 0;
-
-  //parase the data into a vector
-  for (int i = 0 ; i < y_max; i++) {
-    for (int j = 0; j < x_max; j++) {
-      robot_cost_map[i][j] = latest_costmap_.data[index];
-      index++;
-    }
-  }
-  //step 2 : loop though and place the converted 
-  //         cell into global cost map
+  int x_max = latest_costmap_.info.width;
+  int y_max = latest_costmap_.info.height;
+  
 
   //initalize a global cost map with all unknown
   global_map_2d = std::vector<std::vector<int8_t>>(GM_Var::gg_size, 
@@ -119,9 +109,9 @@ void MapMemoryNode::integrateCostmap() {
       int new_x, new_y;
       convertRobotToWorldIndex(j,i,new_x,new_y);
 
-      //place them in temp global if they are in the range of global map
+      //place them in temp global map if they are in the range of global map
       if (new_x < GM_Var::gg_size && new_x >= 0 && new_y < GM_Var::gg_size && new_y >= 0) {
-        global_map_2d[new_y][new_x] = robot_cost_map [i][j];
+        global_map_2d[new_y][new_x] = latest_costmap_.data[i * latest_costmap_.info.width + j];
       }
 
     }
@@ -129,17 +119,16 @@ void MapMemoryNode::integrateCostmap() {
 
   //step 3 : loop though and temopray 2d vector of global in place 
   //into global cost map message being published
-  index = 0;
   
   for (int i = 0; i < GM_Var::gg_size; i++) {
     for (int j = 0; j < GM_Var::gg_size; j++) {
+
+      int index = i * GM_Var::gg_size + j;
 
       //checking if the new one if unknown,than skiping
       if (global_map_2d[i][j] != -1) {
         global_map_->data[index] = global_map_2d[i][j];
       }
-
-      index++;
 
     }
   }

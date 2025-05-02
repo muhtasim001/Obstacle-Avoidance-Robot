@@ -8,12 +8,11 @@
  
 #include "costmap_core.hpp"
 
-//useful constants 
-const int GRID_X_SIZE = 10,GRID_Y_SIZE = 10;
-const float GRID_RESOLUTION = 0.1;
-const int INFLATION_COST = 100;
-const float INFLATION_RADIUS = 0.8;
-const int GRID_SIZE = 10 / GRID_RESOLUTION;
+
+struct mapInfo {
+  int size_x_real,size_y_real,inflation_cost,cell_size_x,cell_size_y,index_size,cell_size;
+  float inflation_radius,inflation_cost,resolution;
+};
  
 class CostmapNode : public rclcpp::Node {
   public:
@@ -41,6 +40,7 @@ class CostmapNode : public rclcpp::Node {
     //the cost map grid
     int8_t **costMapGrid;
     nav_msgs::msg::OccupancyGrid message;
+    mapInfo gInfo;
 };
  
 #endif 

@@ -13,10 +13,10 @@
 
 //global variables
 namespace GM_Var {
-  const int x_size = 30;
-  const int y_size = 30;
+  const int x_size = 300;
+  const int y_size = 300;
   const float resolution = 0.1f;
-  const int gg_size = 30/resolution;
+  const int gg_size = 300;
   const int gg_ofset = gg_size/2;
 }
 

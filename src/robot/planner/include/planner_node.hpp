@@ -55,6 +55,10 @@ struct CompareF
   }
 };
 
+struct gridInfo {
+  int num_col,num_row;
+};
+
 class PlannerNode : public rclcpp::Node {
   public:
     PlannerNode();
@@ -77,7 +81,7 @@ class PlannerNode : public rclcpp::Node {
     geometry_msgs::msg::PointStamped goal_point;
     nav_msgs::msg::OccupancyGrid global_map;
     geometry_msgs::msg::Pose robot_pose;
-    int8_t grid_2d [300][300] = {}; // I just know the size of this
+    gridInfo gInfo;
 
     //state
     enum class State { WAITING_FOR_GOAL, WAITING_FOR_ROBOT_TO_REACH_GOAL };

@@ -27,6 +27,10 @@ PlannerNode::PlannerNode() : Node("planner"), planner_(robot::PlannerCore(this->
 void PlannerNode::mapCallBack(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
 
   global_map = *msg;
+
+  gInfo.num_col = global_map.info.width/global_map.info.resolution;
+  gInfo.num_row = global_map.info.height/global_map.info.resolution;
+
   if (state_ == State::WAITING_FOR_ROBOT_TO_REACH_GOAL) {
     PlannerNode::planPath();
   }
@@ -90,7 +94,7 @@ void PlannerNode::aStartPathFinder(CellIndex start,CellIndex target,nav_msgs::ms
 
     for (CellIndex myNode:PlannerNode::findNeighbors(current)) {
 
-      if (grid_2d[myNode.y][myNode.x] > 0 || closed.find(myNode) != closed.end()) {
+      if (global_map.data[myNode.y * gInfo.num_col + myNode.x] > 0 || closed.find(myNode) != closed.end()) {
         continue;
       }
 
@@ -133,14 +137,13 @@ std::vector<CellIndex> PlannerNode::findNeighbors(AStarNode current) {
 
   std::vector<CellIndex> neighbors = {};
   
-  
   for (int x = -1; x <= 1; x++) {
     for (int y = -1; y <= 1; y++) {
       if (x != 0 && y != 0) {
         int cellX = current.index.x + x;
         int cellY = current.index.y + y;
 
-        if (cellX >= 0 && cellX < global_map.info.width && cellY >= 0 && cellY < global_map.info.height) {
+        if (cellX >= 0 && cellX < gInfo.num_col && cellY >= 0 && cellY < gInfo.num_row) {
           CellIndex myCell(cellX,cellY);
           neighbors.push_back(myCell);
         }
