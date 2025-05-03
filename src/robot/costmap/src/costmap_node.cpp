@@ -13,7 +13,7 @@ CostmapNode::CostmapNode() : Node("costmap"), costmap_(robot::CostmapCore(this->
   gInfo.cell_size_y = 10 / 0.1; // size y / resolution
   gInfo.cell_size = 10 / 0.1;
   gInfo.inflation_cost = 100; 
-  gInfo.inflation_radius =  0.8; // in meters
+  gInfo.inflation_radius =  0.5; // in meters
 
   //initalize publishers and subscribers
   costmap_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/costmap",10);
