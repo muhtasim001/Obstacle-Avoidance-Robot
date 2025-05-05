@@ -2,7 +2,7 @@
 <package format="3">
   <name>costmap</name>
   <version>0.0.0</version>
-  <description>A sample ROS package for pubsub communication</description>
+  <description>A costmap package for ros2</description>
  
   <maintainer email="oleather@watonomous.ca">Owen Leather</maintainer>
   <license>Apache2.0</license>
@@ -12,7 +12,9 @@
   <depend>rclcpp</depend>
  
   <!--YOU ARE ADDING THIS MAINLY-->
-  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>nav_msgs</depend>
  
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
