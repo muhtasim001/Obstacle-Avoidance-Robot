@@ -82,6 +82,7 @@ class PlannerNode : public rclcpp::Node {
     nav_msgs::msg::OccupancyGrid global_map;
     geometry_msgs::msg::Pose robot_pose;
     gridInfo gInfo;
+    nav_msgs::msg::Path previous_path;
 
     //state
     enum class State { WAITING_FOR_GOAL, WAITING_FOR_ROBOT_TO_REACH_GOAL };

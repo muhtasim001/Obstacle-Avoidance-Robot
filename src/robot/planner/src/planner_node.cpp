@@ -231,7 +231,19 @@ void PlannerNode::planPath() {
   //find the path using the A* 
   PlannerNode::aStartPathFinder(startPoint,endPoint,path);
 
-  path_pub->publish(path);
+  //check if there is a path
+  if (path.poses.empty()) {
+    if (previous_path.poses.empty()) {
+      path_pub->publish(path);
+    } else {
+      path_pub->publish(previous_path);
+    }
+  } else {
+    previous_path = path;
+    path_pub->publish(path);
+  }
+
+  
 }
 
 int main(int argc, char ** argv)

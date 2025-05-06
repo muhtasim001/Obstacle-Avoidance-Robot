@@ -43,7 +43,7 @@ class MapMemoryNode : public rclcpp::Node {
     //global map and robot postion
     nav_msgs::msg::OccupancyGrid::SharedPtr global_map_;
     double last_x, last_y;
-    const double distance_threshold = 1.5;
+    const double distance_threshold = 1.2;
     bool costmap_updated_ = false;
     transformation_var tv;
 

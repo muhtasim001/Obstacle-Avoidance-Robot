@@ -5,7 +5,7 @@ ControlNode::ControlNode(): Node("control"), control_(robot::ControlCore(this->g
   //initalize parameters 
   lookahead_distance = 1.2;
   goal_tolerance = 0.1;
-  linear_speed = 0.5;
+  linear_speed = 0.75;
 
   //publishers and subscribers
   cmd_vel_pub = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel",10);
@@ -97,7 +97,7 @@ geometry_msgs::msg::Twist ControlNode::computeVelocity(const geometry_msgs::msg:
   while (heading_error < -M_PI) heading_error += 2.0 * M_PI;
 
   //generate the velocity comand
-  cmd_vel.angular.z = 1.1 * heading_error;
+  cmd_vel.angular.z = 1.0 * heading_error;
   cmd_vel.linear.x = linear_speed;
 
   return cmd_vel;

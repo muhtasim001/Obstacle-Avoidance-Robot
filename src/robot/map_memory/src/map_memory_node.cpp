@@ -40,7 +40,7 @@ MapMemoryNode::MapMemoryNode() : Node("map_memory"), map_memory_(robot::MapMemor
 
   // Initialize timer
   timer_ = this->create_wall_timer(
-      std::chrono::milliseconds(750), std::bind(&MapMemoryNode::updateMap, this));
+      std::chrono::milliseconds(650), std::bind(&MapMemoryNode::updateMap, this));
 
   RCLCPP_INFO(this->get_logger(),"initalized all subs,pubs and timers for map memory");
 
