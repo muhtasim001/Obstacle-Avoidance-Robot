@@ -17,13 +17,13 @@ namespace GM_Var {
   const int y_size = 300;
   const float resolution = 0.1f;
   const int gg_size = 300;
-  const int gg_ofset = gg_size/2;
+  const float gg_ofset = 30/2;
 }
 
 struct transformation_var {
   double x,y;
   double qx,qy,qz,qw;
-  double sinTheta,cosTheta;
+  double theta;
   int ofset;
 };
 
@@ -49,6 +49,7 @@ class MapMemoryNode : public rclcpp::Node {
 
     //current global map
     std::vector<std::vector<int8_t>> global_map_2d;
+
 
     //call back funtions
     void costmapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);

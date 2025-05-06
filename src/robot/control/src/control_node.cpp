@@ -25,7 +25,7 @@ ControlNode::ControlNode(): Node("control"), control_(robot::ControlCore(this->g
 void ControlNode::controlLoop() {
   // Skip control if no path or odometry data is available
   if (!current_path || !robot_odom || current_path->poses.empty()) {
-    RCLCPP_WARN(this->get_logger(),"path is empty, not valid points to use");
+    //RCLCPP_WARN(this->get_logger(),"path is empty, not valid points to use");
     return;
   }
 

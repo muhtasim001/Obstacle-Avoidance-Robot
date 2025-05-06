@@ -6,22 +6,20 @@
  
 CostmapNode::CostmapNode() : Node("costmap"), costmap_(robot::CostmapCore(this->get_logger())) {
   //initalize some variables
-  gInfo.size_x_real = 10; // in meters
-  gInfo.size_y_real = 10; // in meters
+  gInfo.size_x_real = 15; // in meters
+  gInfo.size_y_real = 15; // in meters
   gInfo.resolution = 0.1; 
-  gInfo.cell_size_x = 10 / 0.1; // size x / resoltion
-  gInfo.cell_size_y = 10 / 0.1; // size y / resolution
-  gInfo.cell_size = 10 / 0.1;
+  gInfo.cell_size_x = 15 / 0.1; // size x / resoltion
+  gInfo.cell_size_y = 15 / 0.1; // size y / resolution
+  gInfo.cell_size = 15 / 0.1;
   gInfo.inflation_cost = 100; 
-  gInfo.inflation_radius =  0.5; // in meters
+  gInfo.inflation_radius =  1.2; // in meters
 
   //initalize publishers and subscribers
   costmap_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/costmap",10);
   laider_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>
   ("/lidar",10, std::bind(&CostmapNode::laserCallback,this,std::placeholders::_1));
 
-  // initalize the timer
-  timer_ = this->create_wall_timer(std::chrono::milliseconds(500),std::bind(&CostmapNode::publishCostmap, this));
 
   RCLCPP_INFO(this->get_logger(),"costmap node consturctor sucess");
 }
@@ -30,7 +28,7 @@ CostmapNode::CostmapNode() : Node("costmap"), costmap_(robot::CostmapCore(this->
 void CostmapNode::laserCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan) {
 
   //step 2
-  initializeCostmap();
+  CostmapNode::initializeCostmap();
 
   message.header = scan->header;
 
@@ -43,14 +41,17 @@ void CostmapNode::laserCallback(const sensor_msgs::msg::LaserScan::SharedPtr sca
 
       int gridX = 0, gridY = 0;
       //step 3
-      convertToGrid(range,angle,gridX,gridY);
+      CostmapNode::convertToGrid(range,angle,gridX,gridY);
       //step 4
-      markObstacle(gridX,gridY);
+      CostmapNode::markObstacle(gridX,gridY);
     }
   }
 
   //step 5
-  inflateObstacles();
+  CostmapNode::inflateObstacles();
+
+  //step 5
+  CostmapNode::publishCostmap();
   
 }
 
@@ -97,9 +98,10 @@ void CostmapNode::inflateObstacles() {
   }
 }
 
-void CostmapNode::markObstacle(int gridX,int grdiY) {
-  if (gridX < gInfo.cell_size && gridX > 0 && grdiY < gInfo.cell_size && grdiY >= 0)
-    costMapGrid[gridX][grdiY] = gInfo.inflation_cost;
+void CostmapNode::markObstacle(int gridX,int gridY) {
+  if (gridX < gInfo.cell_size && gridX > 0 && gridY < gInfo.cell_size && gridY >= 0) {
+    costMapGrid[gridY][gridX] = gInfo.inflation_cost;
+  }
 }
 
 void CostmapNode::convertToGrid(double range,double angle,int &gridX,int &gridY) {
@@ -109,8 +111,8 @@ void CostmapNode::convertToGrid(double range,double angle,int &gridX,int &gridY)
   double yCord = range * sin(angle);
 
   //account for the shift as the robot is in the certer of the 2d array
-  gridX = (int)std::round((xCord / gInfo.resolution + gInfo.cell_size_x/2));
-  gridY = (int)std::round((yCord / gInfo.resolution + gInfo.cell_size_y/2));
+  gridX = (int)std::round ((xCord/gInfo.resolution + gInfo.cell_size_x/2));
+  gridY = (int)std::round ((yCord/gInfo.resolution + gInfo.cell_size_y/2));
 
 }
 
@@ -120,27 +122,26 @@ void CostmapNode::publishCostmap() {
   message.info.width = gInfo.cell_size_x;
   message.info.resolution = gInfo.resolution;
   message.info.origin.position.z = 0;
-  message.info.origin.position.x = gInfo.cell_size_x/2.0;
-  message.info.origin.position.y = gInfo.cell_size_y/2.0;
+  message.info.origin.position.x = -gInfo.size_x_real/2.0;
+  message.info.origin.position.y = -gInfo.size_y_real/2.0;
   message.info.origin.orientation.w = 1.0;
+  message.data.assign(gInfo.cell_size_x * gInfo.cell_size_y,-1);
 
-  //flated the 2d cost map
-  int8_t myMap [gInfo.cell_size_x * gInfo.cell_size_y] = {};
 
+  //transfer the message from the 2d to 1d array
   for (int y = 0; y < gInfo.cell_size_y; y++) {
     for (int x = 0; x < gInfo.cell_size_x; x++) {
        int index = y * gInfo.cell_size_x + x;
-       myMap[index] = costMapGrid[y][x];
+       message.data[index] = costMapGrid[y][x];
     }
   }
-
-  //free up the 2d array
+  
+  //free up the memory of 2d array
   for (int i = 0; i < gInfo.cell_size_x; i++) {
     delete [] costMapGrid[i];
   }
   delete [] costMapGrid;
 
-  
 
   //clamp the map between 0 and 100
   for (int i = 0; i < gInfo.cell_size_x * gInfo.cell_size_y ; i++) {

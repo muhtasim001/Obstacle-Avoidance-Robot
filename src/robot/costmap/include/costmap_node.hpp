@@ -11,7 +11,7 @@
 
 struct mapInfo {
   int size_x_real,size_y_real,inflation_cost,cell_size_x,cell_size_y,index_size,cell_size;
-  float inflation_radius,inflation_cost,resolution;
+  float inflation_radius,resolution;
 };
  
 class CostmapNode : public rclcpp::Node {
@@ -41,6 +41,7 @@ class CostmapNode : public rclcpp::Node {
     int8_t **costMapGrid;
     nav_msgs::msg::OccupancyGrid message;
     mapInfo gInfo;
+
 };
  
 #endif 
