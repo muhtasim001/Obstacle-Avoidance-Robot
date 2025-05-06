@@ -28,8 +28,8 @@ void PlannerNode::mapCallBack(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 
   global_map = *msg;
 
-  gInfo.num_col = global_map.info.width/global_map.info.resolution;
-  gInfo.num_row = global_map.info.height/global_map.info.resolution;
+  gInfo.num_col = global_map.info.width;
+  gInfo.num_row = global_map.info.height;
 
   if (state_ == State::WAITING_FOR_ROBOT_TO_REACH_GOAL) {
     PlannerNode::planPath();
@@ -81,6 +81,7 @@ void PlannerNode::aStartPathFinder(CellIndex start,CellIndex target,nav_msgs::ms
   open.push(startNode);
   cell_gCost.emplace(startNode.index, 0);
 
+  RCLCPP_WARN(this->get_logger(), "starting A*");
   while (!open.empty()) {
 
     AStarNode current = open.top();
@@ -89,16 +90,23 @@ void PlannerNode::aStartPathFinder(CellIndex start,CellIndex target,nav_msgs::ms
 
     if (current.index == endNode.index) {
       path.poses = reConstructPath (child_parent,startNode,endNode);
+      if (!path.poses.empty()) {
+        RCLCPP_WARN(this->get_logger(), "path found");
+      }
       return;
     }
 
     for (CellIndex myNode:PlannerNode::findNeighbors(current)) {
 
+      //RCLCPP_WARN(this->get_logger(), "looking though neighbours");
+
+      //RCLCPP_WARN(this->get_logger(), "acessing the globap map data at x = %d and y = %d with num col = %d" , myNode.x, myNode.y,gInfo.num_col);
       if (global_map.data[myNode.y * gInfo.num_col + myNode.x] > 0 || closed.find(myNode) != closed.end()) {
         continue;
       }
 
       int gCostFromCurrent = cell_gCost[current.index] + gCostCalc(myNode,current.index);
+      //RCLCPP_WARN(this->get_logger(), "cost of current neighbours is %d",gCostFromCurrent);
 
       if (cell_gCost.find(myNode) == cell_gCost.end() || gCostFromCurrent < cell_gCost.at(myNode)) {
 
@@ -139,11 +147,11 @@ std::vector<CellIndex> PlannerNode::findNeighbors(AStarNode current) {
   
   for (int x = -1; x <= 1; x++) {
     for (int y = -1; y <= 1; y++) {
-      if (x != 0 && y != 0) {
+      if (x != 0 || y != 0) {
         int cellX = current.index.x + x;
         int cellY = current.index.y + y;
 
-        if (cellX >= 0 && cellX < gInfo.num_col && cellY >= 0 && cellY < gInfo.num_row) {
+        if (cellX >= 0 && cellX < global_map.info.width && cellY >= 0 && cellY < global_map.info.height) {
           CellIndex myCell(cellX,cellY);
           neighbors.push_back(myCell);
         }
@@ -162,17 +170,33 @@ std::vector<geometry_msgs::msg::PoseStamped> PlannerNode::reConstructPath(
 
   CellIndex curent = end.index;
 
-  geometry_msgs::msg::PoseStamped currentPoint;
-
   while (curent != start.index) {
-    currentPoint.pose.position.x = curent.x/global_map.info.resolution + global_map.info.width/2;
-    currentPoint.pose.position.y = curent.y/global_map.info.resolution + global_map.info.height/2;
+
+    geometry_msgs::msg::PoseStamped currentPoint;
+
+    //return an empty path, there is no way to reach the end, controls node handles this case
+    if (backTrackList.find(curent) == backTrackList.end()) {
+      RCLCPP_WARN(this->get_logger(), "there was no starting node found");
+      return {};
+    }
+
+    currentPoint.pose.position.x = curent.x*global_map.info.resolution + global_map.info.origin.position.x;
+    currentPoint.pose.position.y = curent.y*global_map.info.resolution + global_map.info.origin.position.y;
     currentPoint.pose.position.z = 0;
+    currentPoint.header.frame_id = "sim_world";
     
     pathPoints.push_back(currentPoint);
 
     curent = backTrackList.at(curent);
   }
+
+  //add the starting node to the list
+  geometry_msgs::msg::PoseStamped currentPoint;
+  currentPoint.pose.position.x = curent.x*global_map.info.resolution + global_map.info.origin.position.x;
+  currentPoint.pose.position.y = curent.y*global_map.info.resolution + global_map.info.origin.position.y;
+  currentPoint.pose.position.z = 0;
+  currentPoint.header.frame_id = "sim_world";
+  pathPoints.push_back(currentPoint);
 
   std::reverse(pathPoints.begin(),pathPoints.end());
 
@@ -190,19 +214,19 @@ void PlannerNode::planPath() {
   // A* Implementation (pseudo-code)
   nav_msgs::msg::Path path;
   path.header.stamp = this->get_clock()->now();
-  path.header.frame_id = "map";
-
-  // Compute path using A* on current_map_
+  path.header.frame_id = "sim_world";
 
   //find the start point
-  int robot_start_x = (robot_pose.position.x - ((global_map.info.width*global_map.info.resolution)/2)) * global_map.info.resolution;
-  int robot_start_y = (robot_pose.position.y - ((global_map.info.height*global_map.info.resolution)/2)) * global_map.info.resolution;
+  int robot_start_x = std::round((robot_pose.position.x - global_map.info.origin.position.x) / global_map.info.resolution);
+  int robot_start_y = std::round((robot_pose.position.y - global_map.info.origin.position.y) / global_map.info.resolution);
   CellIndex startPoint (robot_start_x,robot_start_y);
+  RCLCPP_WARN(this->get_logger(), "starting index x :%d and y :%d ",robot_start_x,robot_start_y);
   
   //find the end point
-  int robot_end_x = ( goal_point.point.x - ((global_map.info.width*global_map.info.resolution)/2)) * global_map.info.resolution;
-  int robot_end_y = ( goal_point.point.y - ((global_map.info.height*global_map.info.resolution)/2)) * global_map.info.resolution;
+  int robot_end_x = std::round((goal_point.point.x - global_map.info.origin.position.x) / global_map.info.resolution);
+  int robot_end_y = std::round((goal_point.point.y - global_map.info.origin.position.y) / global_map.info.resolution);
   CellIndex endPoint (robot_end_x,robot_end_y);
+  RCLCPP_WARN(this->get_logger(), "ending index x :%d and y :%d ",robot_end_x,robot_end_y);
   
   //find the path using the A* 
   PlannerNode::aStartPathFinder(startPoint,endPoint,path);

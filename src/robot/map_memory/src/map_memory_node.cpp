@@ -21,6 +21,9 @@ MapMemoryNode::MapMemoryNode() : Node("map_memory"), map_memory_(robot::MapMemor
 
   global_map_->data.assign(GM_Var::x_size*GM_Var::y_size,0);
 
+  should_update_map_ = true;
+  costmap_updated_ = true;
+
 
   RCLCPP_INFO(this->get_logger(),"initalized global map");
 
@@ -149,6 +152,7 @@ void MapMemoryNode::convertRobotToWorldIndex(int robot_x_index,int robot_y_index
   world_x_index = (int)std::round((world_x_cord - global_map_->info.origin.position.x)/GM_Var::resolution);
   world_y_index = (int)std::round((world_y_cord - global_map_->info.origin.position.y)/GM_Var::resolution);
 }
+
 
 int main(int argc, char ** argv)
 {

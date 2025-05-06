@@ -3,7 +3,7 @@
 ControlNode::ControlNode(): Node("control"), control_(robot::ControlCore(this->get_logger())) {
 
   //initalize parameters 
-  lookahead_distance = 1.0;
+  lookahead_distance = 1.2;
   goal_tolerance = 0.1;
   linear_speed = 0.5;
 
@@ -25,9 +25,11 @@ ControlNode::ControlNode(): Node("control"), control_(robot::ControlCore(this->g
 void ControlNode::controlLoop() {
   // Skip control if no path or odometry data is available
   if (!current_path || !robot_odom || current_path->poses.empty()) {
-    //RCLCPP_WARN(this->get_logger(),"path is empty, not valid points to use");
+    if (!current_path || current_path->poses.empty()) {
+      RCLCPP_INFO(this->get_logger(),"path is empty, not valid points to use");
+    }
     return;
-  }
+}
 
   // Find the lookahead point
   auto lookahead_point = findLookaheadPoint();
@@ -72,6 +74,7 @@ std::optional<geometry_msgs::msg::PoseStamped> ControlNode::findLookaheadPoint()
   }
   
   //all fails, and we don't find one, than return null
+  RCLCPP_WARN(this->get_logger(),"no lookahead/empty path");
   return std::nullopt;  
 }
 
@@ -94,7 +97,7 @@ geometry_msgs::msg::Twist ControlNode::computeVelocity(const geometry_msgs::msg:
   while (heading_error < -M_PI) heading_error += 2.0 * M_PI;
 
   //generate the velocity comand
-  cmd_vel.angular.z = 2.0 * heading_error;
+  cmd_vel.angular.z = 1.1 * heading_error;
   cmd_vel.linear.x = linear_speed;
 
   return cmd_vel;
@@ -105,7 +108,7 @@ double ControlNode::computeDistance(const geometry_msgs::msg::Point &a, const ge
 }
 
 double ControlNode::extractYaw(const geometry_msgs::msg::Quaternion &quat) {
-  return std::atan2(2.0f * (quat.w * quat.z + quat.x * quat.y),std::pow(quat.w,2) + std::pow(quat.x,2) - std::pow(quat.y,2) - std::pow(quat.z,2));
+  return std::atan2(2.0 * (quat.w * quat.z + quat.x * quat.y), 1.0 - 2.0 * (std::pow(quat.y,2) + std::pow(quat.z,2)));
 }
 
 int main(int argc, char ** argv)
