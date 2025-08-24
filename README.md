@@ -1,15 +1,25 @@
-# WATonomous ASD Admissions Assignment
+# Turtlebot-Navigation-Demo
 
-## Prerequisite Installation
-These steps are to setup the monorepo to work on your own PC. We utilize docker to enable ease of reproducibility and deployability.
+## About 
 
-> Why docker? It's so that you don't need to download any coding libraries on your bare metal pc, saving headache :3
+the goal of this project, was to write, play and experiment with commonly used algorithm and concepts used to robotics.  
+from scratch the following were implemented : 
+1. a local cost map 
+2. global cost map with memory 
+3. a basic path planning algorithm for static obsticle avoidance (A*)
+4. the pure persuit controller 
 
-1. This assignment is supported on Linux Ubuntu >= 22.04, Windows (WSL), and MacOS. This is standard practice that roboticists can't get around. To setup, you can either setup an [Ubuntu Virtual Machine](https://ubuntu.com/tutorials/how-to-run-ubuntu-desktop-on-a-virtual-machine-using-virtualbox#1-overview), setting up [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), or setting up your computer to [dual boot](https://opensource.com/article/18/5/dual-boot-linux). You can find online resources for all three approaches.
-2. Once inside Linux, [Download Docker Engine using the `apt` repository](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)
-3. You're all set! You can begin the assignment by visiting the WATonomous Wiki.
+## pre demo check list 
 
-Link to Onboarding Assignment: https://wiki.watonomous.ca/
+before you can run the demo, make sure you have the following installed: 
+1. docker engine
+2. chrome (only browser supported by foxglove)
 
-run this to get intelesense, run this and reload vsCode: 
-./watod --setup-dev-env robot
+on linux systems you can simply run the script in your terminal. However, if you are on windows you will need to use wsl.
+
+## to run the demo
+1. run the following command in the root directory ```./watod run```
+2. look for the foxglove port and copy it down 
+3. go to [foxglove](https://app.foxglove.dev/thom/dashboard)
+4. open a conection to that port from step 2
+5. now you can play around and make the robot move with teleop or placing points
