@@ -18,6 +18,9 @@ RUN apt-get -qq update && rosdep update && \
 ################################# Dependencies ################################
 FROM ${BASE_IMAGE} AS dependencies
 
+RUN apt-get update && apt-get install -y curl \
+ && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
 # Install Foxglove Deps
 RUN apt-get update && apt-get install -y curl ros-humble-ros2bag ros-humble-rosbag2* ros-humble-foxglove-msgs&& \
     rm -rf /var/lib/apt/lists/*

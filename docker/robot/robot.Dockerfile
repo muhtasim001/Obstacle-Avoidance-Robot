@@ -25,6 +25,9 @@ FROM ${BASE_IMAGE} AS dependencies
 
 # ADD MORE DEPENDENCIES HERE
 
+RUN apt-get update && apt-get install -y curl \
+ && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list
 RUN apt-fast install -qq -y --no-install-recommends $(cat /tmp/colcon_install_list)
