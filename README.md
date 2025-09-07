@@ -25,8 +25,11 @@ on linux systems you can simply run the script in your terminal. However, if you
 5. now you can play around and make the robot move with teleop or placing points
 
 ## Demo Video
-<video controls width="600">
-  <source src="config/vid.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+<iframe width="600" height="340" 
+    src="https://www.youtube.com/watch?v=emOPSX20CpI" 
+    title="Navigation Demo" 
+    frameborder="0" 
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+    allowfullscreen>
+</iframe>
 
