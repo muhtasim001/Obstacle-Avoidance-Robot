@@ -23,3 +23,10 @@ on linux systems you can simply run the script in your terminal. However, if you
 3. go to [foxglove](https://app.foxglove.dev/thom/dashboard)
 4. open a conection to that port from step 2
 5. now you can play around and make the robot move with teleop or placing points
+
+## Demo Video
+<video controls width="600">
+  <source src="config/vid.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
