@@ -11,15 +11,12 @@ COPY src/gazebo gazebo
 # Scan for rosdeps
 RUN apt-get -qq update && rosdep update && \
     rosdep install --from-paths . --ignore-src -r -s \
-        | grep 'apt-get install' \
+        | (grep 'apt-get install' || true) \
         | awk '{print $3}' \
         | sort  > /tmp/colcon_install_list
 
 ################################# Dependencies ################################
 FROM ${BASE_IMAGE} AS dependencies
-
-RUN apt-get update && apt-get install -y curl \
- && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 
 # RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC
 RUN apt-get update && apt-get install ffmpeg libsm6 libxext6 -y
