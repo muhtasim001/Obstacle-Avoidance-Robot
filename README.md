@@ -25,4 +25,4 @@ on linux systems you can simply run the script in your terminal. However, if you
 5. now you can play around and make the robot move with teleop or placing points
 
 ## Demo Video
-[![Watch the video](config/thumbnail.png)](https://www.youtube.com/watch?v=emOPSX20CpI)
+[![Watch the video](config/thumbnail.png)](https://youtu.be/Sw68b7m1jD8)
